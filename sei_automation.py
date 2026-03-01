@@ -163,7 +163,7 @@ class MainWindow(QMainWindow):
         h_row.setContentsMargins(6, 0, 6, 0)
 
         for txt, fixed_w in [
-            ("   Tipo de Documento", 160),
+            ("  Tipo de Documento", 160),
             ("Nome do Arquivo", 0),
             ("", 32),
             ("", 28),
