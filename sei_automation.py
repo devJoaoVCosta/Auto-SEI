@@ -233,7 +233,7 @@ class MainWindow(QMainWindow):
         btn_add.setFixedSize(210, 38)
         btn_reset.setFixedSize(120, 38)
 
-        btn_exec = QPushButton("EXECUTAR AUTOMACAO")
+        btn_exec = QPushButton("EXECUTAR")
         btn_exec.setFixedHeight(38)
         btn_exec.setStyleSheet(
             "background-color: #0e509a; color: white; border-radius: 6px; font-size: 14px; font-weight: bold;"
@@ -241,10 +241,11 @@ class MainWindow(QMainWindow):
         btn_exec.clicked.connect(self.executar_automacao)
         layout.addWidget(btn_exec)
 
-        self.checkbox_salvar = QCheckBox("Lembrar usuario e senha")
-        self.checkbox_salvar.setVisible(False)
+        #self.checkbox_salvar = QCheckBox("Lembrar usuário e senha")
+        # checkbox disponível para permitir persistência de credenciais
+        #self.checkbox_salvar.setVisible(True)
 
-        self._carregar_login_salvo()
+        #self._carregar_login_salvo()
 
     def _input(self, placeholder, password=False):
         f = QLineEdit()
@@ -255,13 +256,13 @@ class MainWindow(QMainWindow):
             f.setEchoMode(QLineEdit.Password)
         return f
 
-    def _carregar_login_salvo(self):
-        usuario = os.getenv("SEI_USUARIO")
-        senha = os.getenv("SEI_SENHA")
-        if usuario and senha:
-            self.usuario_input.setText(usuario)
-            self.senha_input.setText(senha)
-            self.checkbox_salvar.setChecked(True)
+    # def _carregar_login_salvo(self):
+        #usuario = os.getenv("SEI_USUARIO")
+        #senha = os.getenv("SEI_SENHA")
+        #if usuario and senha:
+            #self.usuario_input.setText(usuario)
+            #self.senha_input.setText(senha)
+            #self.checkbox_salvar.setChecked(True)
 
     def _selecionar_pasta(self):
         pasta = QFileDialog.getExistingDirectory(self, "Selecionar Pasta")
@@ -303,7 +304,80 @@ class MainWindow(QMainWindow):
         self._contador = 0
 
     def executar_automacao(self):
-        pass
+        """Coleta dados da interface, valida e dispara a automação Selenium.
+
+        Atualiza o status de cada linha de documento e trata o salvamento
+        de credenciais caso o checkbox esteja marcado.
+        """
+        usuario = self.usuario_input.text().strip()
+        senha = self.senha_input.text().strip()
+        processo = self.processo_input.text().strip()
+        pasta = self.pasta_input.text().strip()
+
+        if not usuario or not senha:
+            QMessageBox.warning(self, "Erro", "Informe usuário e senha.")
+            return
+        if not processo:
+            QMessageBox.warning(self, "Erro", "Informe o número do processo.")
+            return
+        if not pasta or not os.path.isdir(pasta):
+            QMessageBox.warning(self, "Erro", "Selecione uma pasta válida com os PDFs.")
+            return
+        if not self._linhas:
+            QMessageBox.warning(self, "Erro", "Nenhum documento para processar.")
+            return
+
+        # Monta lista de documentos e valida caminhos
+        documentos = []
+        for linha in self._linhas:
+            tipo, nome = linha.dados()
+            if not tipo or not nome:
+                QMessageBox.warning(self, "Erro", "Todas as linhas devem ter tipo e nome de arquivo preenchidos.")
+                return
+            caminho = os.path.join(pasta, nome)
+            if not os.path.isfile(caminho):
+                QMessageBox.warning(self, "Erro", f"Arquivo não encontrado: {caminho}")
+                return
+            documentos.append({"tipo": tipo, "caminho": caminho})
+
+        # salva credenciais se necessário
+        #if self.checkbox_salvar.isChecked():
+            #try:
+                # grava no .env atual ou cria um
+                #set_key(dotenv_path=".env", key_to_set="SEI_USUARIO", value_to_set=usuario)
+                #set_key(dotenv_path=".env", key_to_set="SEI_SENHA", value_to_set=senha)
+            #except Exception:
+                # não falha a execução apenas loga
+                #print("Não foi possível salvar credenciais")
+
+        # desativa botão para evitar clicks repetidos e limpa status anteriores
+        btn = self.sender()
+        if isinstance(btn, QPushButton):
+            btn.setEnabled(False)
+        for linha in self._linhas:
+            linha.set_status("", "#333")
+
+        try:
+            auto = SEIAutomation()
+            resultados = auto.executar(usuario, senha, processo, documentos)
+        except Exception as e:
+            QMessageBox.critical(self, "Erro", f"Falha na automação:\n{e}")
+            resultados = []
+        finally:
+            if isinstance(btn, QPushButton):
+                btn.setEnabled(True)
+
+        # atualiza status de cada linha
+        for linha, ok in zip(self._linhas, resultados):
+            if ok:
+                linha.set_status("OK", "#228B22")
+            else:
+                linha.set_status("ERRO", "#b22222")
+
+        if resultados and all(resultados):
+            QMessageBox.information(self, "Concluído", "Todos os documentos foram processados com sucesso.")
+        elif resultados:
+            QMessageBox.warning(self, "Parcial", "Alguns documentos apresentaram erro. Verifique os status em vermelho.")
 
 
 if __name__ == "__main__":
