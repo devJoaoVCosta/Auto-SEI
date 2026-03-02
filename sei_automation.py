@@ -22,14 +22,7 @@ TIPOS_DOCUMENTO = [
     "Outros",
 ]
 
-STYLE_INPUT = """
-    background-color: #ffffff;
-    color: black;
-    border-radius: 5px;
-    padding: 6px 6px 6px 28px;
-    font-size: 13px;
-"""
-
+STYLE_INPUT = "background-color: #ffffff; color: black; border-radius: 5px; padding: 6px; font-size: 13px;"  
 
 class DocumentoRow(QFrame):
     def __init__(self, numero, nome_arquivo: str, on_remove):
@@ -112,7 +105,7 @@ class MainWindow(QMainWindow):
         central = QWidget()
         self.setCentralWidget(central)
         layout = QVBoxLayout(central)
-        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setContentsMargins(8, 8, 8, 8)  
         layout.setSpacing(8)
 
         titulo = QLabel("Automacao SEI - Funpresp-jud")
@@ -126,6 +119,7 @@ class MainWindow(QMainWindow):
 
         self.usuario_input = self._input("Usuario")
         self.usuario_input.addAction(QIcon("user.png"), QLineEdit.LeadingPosition)
+        self.usuario_input.setTextMargins(0, 0, 0, 0)  
 
         self.senha_input = self._input("Senha", password=True)
 
@@ -159,20 +153,39 @@ class MainWindow(QMainWindow):
         header = QFrame()
         header.setStyleSheet("background-color: #0e509a; border-radius: 4px;")
         header.setFixedHeight(26)
+
         h_row = QHBoxLayout(header)
         h_row.setContentsMargins(6, 0, 6, 0)
+        h_row.setSpacing(6)
 
-        for txt, fixed_w in [
-            ("  Tipo de Documento", 160),
-            ("Nome do Arquivo", 0),
-            ("", 32),
-            ("", 28),
-        ]:
-            lbl = QLabel(txt)
-            lbl.setStyleSheet("color: white; font-size: 11px; font-weight: bold;")
-            if fixed_w:
-                lbl.setFixedWidth(fixed_w)
-            h_row.addWidget(lbl)
+        # coluna do número (só espaço)
+        lbl_num = QLabel("")
+        lbl_num.setFixedWidth(22)
+        h_row.addWidget(lbl_num)
+
+        # Tipo de Documento
+        lbl_tipo = QLabel("Tipo de Documento")
+        lbl_tipo.setStyleSheet("color: white; font-size: 11px; font-weight: bold;")
+        lbl_tipo.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        lbl_tipo.setFixedWidth(165)
+        h_row.addWidget(lbl_tipo)
+
+        # Nome do Arquivo
+        lbl_nome = QLabel("Nome do Arquivo")
+        lbl_nome.setStyleSheet("color: white; font-size: 11px; font-weight: bold;")
+        lbl_nome.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        h_row.addWidget(lbl_nome, 0, Qt.AlignLeft)
+
+        # coluna status
+        lbl_status = QLabel("")
+        lbl_status.setFixedWidth(32)
+        h_row.addWidget(lbl_status)
+
+        # coluna botão X
+        lbl_x = QLabel("")
+        lbl_x.setFixedWidth(28)
+        h_row.addWidget(lbl_x)
+
         layout.addWidget(header)
 
         self.scroll_area = QScrollArea()
